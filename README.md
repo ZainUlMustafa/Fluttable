@@ -1,2 +1,3 @@
-# Fluttable
-A minimilistic and form integratable Flutter DataTable plugin
+# fluttable
+
+![fluttable logo](images/logo.png)
