@@ -1,13 +1,15 @@
 library fluttable;
+// TODO: VARIOUS ASSERTIONS NEEDED TO BE BUILT
+// TODO: Change "callback" to "onTableChange"
 
 import 'package:flutter/material.dart';
 
 class Fluttable extends StatefulWidget {
   final String firstColumnText;
-  final List<List> editableDatasetList;
+  final List<List<String>> editableDatasetList;
   final List<String> headerTexts;
 
-  final Function callback;
+  final Function(List<List<String>>) callback;
 
   final bool showFirstColumn;
   final bool expandableList;
@@ -18,6 +20,19 @@ class Fluttable extends StatefulWidget {
   final Color backgroundColor;
   final Color otherBackgroundColor;
 
+  final int minRows;
+  final double contentPadding;
+  final bool editable;
+  final bool showRowCounter;
+  final bool alphaCounter;
+
+  final List<String> rowNames;
+
+  final List<int> rowsToDisable;
+  final List<List<int>> cellsToDisable;
+
+  final Function validateField;
+
   Fluttable({
     @required this.firstColumnText,
     @required this.editableDatasetList,
@@ -25,11 +40,21 @@ class Fluttable extends StatefulWidget {
     @required this.callback,
     @required this.showFirstColumn,
     @required this.expandableList,
+    this.validateField,
     this.showHeaderFirstColumnText: true,
     this.formKeyIfAny,
     this.backgroundColor: Colors.white,
     this.otherBackgroundColor: Colors.white70,
-  });
+    this.minRows,
+    this.contentPadding,
+    this.editable: true,
+    this.rowsToDisable,
+    this.showRowCounter: true,
+    this.alphaCounter: false,
+    this.rowNames: const [],
+    this.cellsToDisable,
+    Key key,
+  }) : super(key: key);
 
   @override
   _FluttableState createState() => _FluttableState();
@@ -40,21 +65,27 @@ class _FluttableState extends State<Fluttable> {
 
   List<List<String>> editableDatasetList = [];
   List<String> headerTexts = [];
+  List<List<int>> cellsToDisable = [];
   @override
   void initState() {
+    print("FLUTTABLE INIT");
     super.initState();
-    editableDatasetList = [...widget.editableDatasetList];
+    editableDatasetList = widget.minRows != null
+        ? [...widget.editableDatasetList].sublist(0, widget.minRows)
+        : [...widget.editableDatasetList];
     headerTexts = [...widget.headerTexts];
+    print("FLUTTABLE DATA: $editableDatasetList");
   }
 
   @override
   Widget build(BuildContext context) {
-    print(widget.expandableList | widget.showFirstColumn);
+    // print(widget.expandableList | widget.showFirstColumn);
+    cellsToDisable = getCellsToDisable(editableDatasetList);
     return Column(
       children: [
         // HEAD
         Container(
-          margin: EdgeInsets.symmetric(horizontal: 20),
+          margin: EdgeInsets.symmetric(horizontal: widget.contentPadding ?? 0),
           padding: EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: widget.backgroundColor,
@@ -142,12 +173,18 @@ class _FluttableState extends State<Fluttable> {
                               });
                               sendCallback();
                             },
-                            child: Text(
-                              "+",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
+                            // child: Text(
+                            //   "Add",
+                            //   textAlign: TextAlign.center,
+                            //   style: TextStyle(
+                            //     fontSize: 10,
+                            //     fontStyle: FontStyle.italic,
+                            //     fontWeight: FontWeight.w300,
+                            //   ),
+                            // ),
+                            child: Icon(
+                              Icons.add,
+                              size: 12,
                             ),
                           ),
                         ),
@@ -164,7 +201,8 @@ class _FluttableState extends State<Fluttable> {
             .map((i, eachDataset) => MapEntry(
                   i,
                   Container(
-                    margin: EdgeInsets.symmetric(horizontal: 20),
+                    margin: EdgeInsets.symmetric(
+                        horizontal: widget.contentPadding ?? 0),
                     padding: EdgeInsets.symmetric(vertical: 6),
                     decoration: BoxDecoration(
                       color: editableDatasetList.indexOf(eachDataset) % 2 == 0
@@ -197,7 +235,7 @@ class _FluttableState extends State<Fluttable> {
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Text(
-                                      "${widget.firstColumnText} ${editableDatasetList.indexOf(eachDataset) + 1}",
+                                      "${widget.rowNames.length == widget.minRows ? widget.rowNames[i] : ''}${widget.firstColumnText}${widget.showRowCounter ? widget.alphaCounter ? String.fromCharCode(65 + editableDatasetList.indexOf(eachDataset)) : editableDatasetList.indexOf(eachDataset) + 1 : ''}",
                                       style: TextStyle(
                                         fontWeight: FontWeight.w400,
                                       ),
@@ -219,10 +257,19 @@ class _FluttableState extends State<Fluttable> {
                                     child: Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: TextFormField(
+                                        initialValue: editableDatasetList[i][j],
+                                        keyboardType: keypad.keypadInputType,
+                                        enabled: (cellsToDisable[i][j] == 1) ^
+                                                widget.editable ^
+                                                (widget.rowsToDisable ?? [])
+                                                    .contains(i) ??
+                                            true,
                                         textAlign: TextAlign.center,
                                         validator: (value) {
-                                          return validateNumericField(value,
-                                              isInTable: true);
+                                          return (cellsToDisable[i][j] == 1) ^
+                                                  (widget.formKeyIfAny != null)
+                                              ? widget.validateField(value)
+                                              : null;
                                         },
                                         onChanged: (value) {
                                           setState(() {
@@ -231,7 +278,12 @@ class _FluttableState extends State<Fluttable> {
 
                                           sendCallback();
                                         },
-                                        decoration: keypad.tableInputDecoration,
+                                        decoration: getInputDecoration(
+                                            (cellsToDisable[i][j] == 1) ^
+                                                    widget.editable ^
+                                                    (widget.rowsToDisable ?? [])
+                                                        .contains(i) ??
+                                                true),
                                       ),
                                     ),
                                   ),
@@ -258,18 +310,28 @@ class _FluttableState extends State<Fluttable> {
                                     padding: EdgeInsets.all(8),
                                     child: GestureDetector(
                                       onTap: () {
-                                        setState(() {
-                                          editableDatasetList
-                                              .remove(eachDataset);
-                                        });
-                                        sendCallback();
+                                        if (editableDatasetList.length >
+                                                widget.minRows ??
+                                            0) {
+                                          setState(() {
+                                            editableDatasetList
+                                                .remove(eachDataset);
+                                          });
+                                          sendCallback();
+                                        }
                                       },
-                                      child: Text(
-                                        "-",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                      // child: Text(
+                                      //   "Remove",
+                                      //   textAlign: TextAlign.center,
+                                      //   style: TextStyle(
+                                      //     fontSize: 10,
+                                      //     fontStyle: FontStyle.italic,
+                                      //     fontWeight: FontWeight.w300,
+                                      //   ),
+                                      // ),
+                                      child: Icon(
+                                        Icons.clear,
+                                        size: 10,
                                       ),
                                     ),
                                   ),
@@ -286,45 +348,73 @@ class _FluttableState extends State<Fluttable> {
   }
 
   sendCallback() {
+    print("FLUTTABLE: sending onchange");
     if (widget.formKeyIfAny?.currentState?.validate() ?? true) {
-      widget.callback(editableDatasetList);
+      print("FLUTTABLE: verified callback");
     }
+    widget.callback(editableDatasetList);
   }
 
-  String validateNumericField(String value, {bool isInTable: false}) {
-    if (value.isEmpty || double.tryParse(value) == null) {
-      return isInTable ? "Error" : 'Enter a valid amount';
+  List<List<int>> getCellsToDisable(List listOfList) {
+    //  README: List must look like this
+    // List<List<String>> listOfList = [
+    //   ["z", "a", "t", "o", "r"],
+    //   ["a", "r", "e", "p", "o"],
+    //   ["t", "e", "n", "e", "t"],
+    //   ["o", "p", "e", "r", "a"],
+    //   ["r", "o", "t", "a", "z"],
+    // ];
+    if (widget.cellsToDisable?.isEmpty ?? true) {
+      List<List<int>> cellsToDisable = [];
+
+      for (List listValue in listOfList) {
+        List<int> listInts = [];
+        for (var value in listValue) {
+          listInts = [...listInts, 0];
+        }
+        cellsToDisable = [...cellsToDisable, listInts];
+      }
+
+      return cellsToDisable;
     } else {
-      // Docs: https://stackoverflow.com/questions/2622776/regex-to-match-four-repeated-letters-in-a-string-using-a-java-pattern
-      Pattern pattern = r'([.])\1{1}';
-      RegExp regExp = new RegExp(pattern);
-      return regExp.hasMatch(value)
-          ? isInTable
-              ? "Error"
-              : "Enter a valid amount"
-          : null;
+      if (listOfList.length == widget.cellsToDisable.length) {
+        return widget.cellsToDisable;
+      } else {
+        // TODO: HANDLE SPECIFIC CASES TO WHICH CELLS TO RETAIN AND WHICH TO ADD OR REMOVE
+        List<List<int>> cellsToDisable = [];
+
+        for (List listValue in listOfList) {
+          List<int> listInts = [];
+          for (var value in listValue) {
+            listInts = [...listInts, 0];
+          }
+          cellsToDisable = [...cellsToDisable, listInts];
+        }
+
+        return cellsToDisable;
+      }
     }
   }
-}
 
-class Keypad {
-  TextInputType keypadInputType;
-  InputDecoration inputDecoration;
-  InputDecoration tableInputDecoration;
-
-  Keypad() {
-    this.keypadInputType =
-        TextInputType.numberWithOptions(decimal: true, signed: true);
-
-    this.tableInputDecoration = InputDecoration(
+  InputDecoration getInputDecoration(bool isEnabled) {
+    return InputDecoration(
       border: InputBorder.none,
       errorStyle: TextStyle(fontSize: 10.0),
       filled: true,
       fillColor: Colors.transparent,
       isDense: true, // Added this
       contentPadding: EdgeInsets.all(0),
-      hintText: 'Value',
+      hintText: isEnabled ? 'Value' : '',
       hintStyle: TextStyle(fontSize: 10.0),
     );
+  }
+}
+
+class Keypad {
+  TextInputType keypadInputType;
+
+  Keypad() {
+    this.keypadInputType = TextInputType
+        .phone; //TextInputType.numberWithOptions(decimal: true, signed: true);
   }
 }

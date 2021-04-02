@@ -1,8 +1,8 @@
 name: fluttable
-description: A minimal yet powerful approach to editable data tables.
-version: 0.0.3
+description: A minimal yet powerful approach to editable data tables making it completely editable, customizable, be styled, excellent integration with Form widget.
+version: 1.0.0
 author: Zain Ul Mustafa
-homepage: https://github.com/zainulmustafa
+homepage: https://github.com/zainulmustafa/fluttable
 
 environment:
   sdk: ">=2.7.0 <3.0.0"
