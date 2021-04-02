@@ -97,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   expandableList: true,
                   validateField: validateNumericField,
                   formKeyIfAny: _formKey,
-                  backgroundColor: Colors.amber[50],
+                  backgroundColor: Colors.blue[100],
                   otherBackgroundColor: Colors.blue[50],
                 ),
 

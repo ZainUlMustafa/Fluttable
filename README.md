@@ -8,3 +8,6 @@
 - Controlled
 
 ![fluttable logo](https://raw.githubusercontent.com/ZainUlMustafa/Fluttable/main/images/logo.png)
+
+## Demo
+![fluttable demo](https://raw.githubusercontent.com/ZainUlMustafa/Fluttable/main/images/fluttabledemo.webm)

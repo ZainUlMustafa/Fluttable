@@ -311,8 +311,7 @@ class _FluttableState extends State<Fluttable> {
                                     child: GestureDetector(
                                       onTap: () {
                                         if (editableDatasetList.length >
-                                                widget.minRows ??
-                                            0) {
+                                            (widget.minRows ?? 0)) {
                                           setState(() {
                                             editableDatasetList
                                                 .remove(eachDataset);
