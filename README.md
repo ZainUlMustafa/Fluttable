@@ -1,4 +1,10 @@
 # Fluttable
-- A minimal yet powerful approach to editable data tables
+
+**A minimal yet powerful approach to editable data tables which can**
+- Editable
+- Customizable
+- Styled
+- Validated
+- Controlled
 
 ![fluttable logo](https://raw.githubusercontent.com/ZainUlMustafa/Fluttable/main/images/logo.png)
