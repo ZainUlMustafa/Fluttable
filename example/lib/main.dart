@@ -29,6 +29,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final _formKey = GlobalKey<FormState>();
+  var tableKey = GlobalKey();
   String stringEntryOne = "";
 
   String result;
@@ -39,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
     Points(xcorr: '', ycorr: ''),
     Points(xcorr: '', ycorr: ''),
   ];
-  List<Points> listOfEnteredPoints = [];
+  // List<Points> listOfEnteredPoints = [];
 
   @override
   Widget build(BuildContext context) {
@@ -81,24 +82,39 @@ class _MyHomePageState extends State<MyHomePage> {
 
                 // FLUTTABLE IMPLEMENTATION
                 Fluttable(
-                  firstColumnText: "Point ",
-                  // DOCS: takes List<List<<String>> as editableDatasetList
+                  defaultValidator: FluttableVal.POSINT,
+                  key: tableKey,
+                  contentPadding: 30,
+                  showHeaderFirstColumnText: false,
+                  expandableList: true,
+                  showFirstColumn: true,
+                  firstColumnText: "Point P",
                   editableDatasetList:
                       points.convertPointsToRawList(listOfPoints),
                   headerTexts: ["x", "y"],
-                  callback: (value) {
+                  onTableEdited: (value) {
+                    print(value);
                     setState(() {
-                      listOfEnteredPoints =
-                          points.convertRawListToPointsList(value);
+                      listOfPoints = points.convertRawListToPointsList(value);
                     });
                     doSomething();
                   },
-                  showFirstColumn: true,
-                  expandableList: true,
-                  validateField: validateNumericField,
+                  onRowAdded: (value) {
+                    setState(() {
+                      listOfPoints = points.convertRawListToPointsList(value);
+                      tableKey = GlobalKey();
+                      result = null;
+                    });
+                  },
+                  onRowDeleted: (value) {
+                    setState(() {
+                      listOfPoints = points.convertRawListToPointsList(value);
+                      tableKey = GlobalKey();
+                    });
+                    doSomething();
+                  },
                   formKeyIfAny: _formKey,
-                  backgroundColor: Colors.blue[100],
-                  otherBackgroundColor: Colors.blue[50],
+                  minRows: 2,
                 ),
 
                 SizedBox(height: 30),
@@ -115,11 +131,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   doSomething() {
     if (_formKey.currentState.validate()) {
-      print(listOfEnteredPoints.map((e) => e.toMap()));
+      print(listOfPoints.map((e) => e.toMap()));
       print("validation cool!");
       setState(() {
-        result =
-            "$stringEntryOne and ${listOfEnteredPoints.map((e) => e.toMap())}";
+        result = "$stringEntryOne and ${listOfPoints.map((e) => e.toMap())}";
       });
     } else {
       print("validation not!");

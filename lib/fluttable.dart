@@ -9,7 +9,7 @@ class Fluttable extends StatefulWidget {
   final List<List<String>> editableDatasetList;
   final List<String> headerTexts;
 
-  final Function(List<List<String>>) callback;
+  // final Function(List<List<String>>) callback;
 
   final bool showFirstColumn;
   final bool expandableList;
@@ -31,16 +31,23 @@ class Fluttable extends StatefulWidget {
   final List<int> rowsToDisable;
   final List<List<int>> cellsToDisable;
 
-  final Function validateField;
+  final double iconSize;
+
+  final Function(List<List<String>>) onTableEdited;
+  final Function(List<List<String>>) onRowDeleted;
+  final Function(List<List<String>>) onRowAdded;
+
+  final Function validator;
+  final List<List<FluttableVal>> customizeValidations;
+  final FluttableValCheck customFluttableValCheck;
+  final FluttableVal defaultValidator;
 
   Fluttable({
     @required this.firstColumnText,
     @required this.editableDatasetList,
     @required this.headerTexts,
-    @required this.callback,
     @required this.showFirstColumn,
     @required this.expandableList,
-    this.validateField,
     this.showHeaderFirstColumnText: true,
     this.formKeyIfAny,
     this.backgroundColor: Colors.white,
@@ -53,6 +60,15 @@ class Fluttable extends StatefulWidget {
     this.alphaCounter: false,
     this.rowNames: const [],
     this.cellsToDisable,
+    this.iconSize: 15,
+    // @Deprecated('Use [onTableEdited] instead') this.callback,
+    this.onTableEdited,
+    this.onRowAdded,
+    this.onRowDeleted,
+    this.validator,
+    this.customizeValidations,
+    this.customFluttableValCheck,
+    this.defaultValidator,
     Key key,
   }) : super(key: key);
 
@@ -62,19 +78,37 @@ class Fluttable extends StatefulWidget {
 
 class _FluttableState extends State<Fluttable> {
   final Keypad keypad = Keypad();
+  FluttableValCheck fvc;
 
   List<List<String>> editableDatasetList = [];
   List<String> headerTexts = [];
   List<List<int>> cellsToDisable = [];
+  bool isCustomizeValidationsProvided = false;
+
   @override
   void initState() {
-    print("FLUTTABLE INIT");
     super.initState();
-    editableDatasetList = widget.minRows != null
-        ? [...widget.editableDatasetList].sublist(0, widget.minRows)
-        : [...widget.editableDatasetList];
+    initTheFluttable();
+  }
+
+  initTheFluttable() {
+    // print("FLUTTABLE INIT");
+    fvc = widget.customFluttableValCheck ?? FluttableValCheck();
+    // print(fvc.specifyRange);
+    fvc.fallbackValidator = widget.validator ??
+        fvc.getValidatorFunction(
+            widget.defaultValidator ?? FluttableVal.DEFAULT);
+    editableDatasetList = [...widget.editableDatasetList];
     headerTexts = [...widget.headerTexts];
-    print("FLUTTABLE DATA: $editableDatasetList");
+    isCustomizeValidationsProvided =
+        (widget.customizeValidations ?? []).isNotEmpty;
+    // print("FLUTTABLE DATA: $editableDatasetList");
+  }
+
+  reinitTheFluttable() {
+    // print("FLUTTABLE REINIT");
+    editableDatasetList = [...widget.editableDatasetList];
+    // print("FLUTTABLE REDATA: $editableDatasetList");
   }
 
   @override
@@ -161,9 +195,11 @@ class _FluttableState extends State<Fluttable> {
                         ),
                         // color: Colors.red,
                         child: Padding(
-                          padding: EdgeInsets.all(8),
-                          child: GestureDetector(
-                            onTap: () {
+                          padding: EdgeInsets.all(0),
+                          child: IconButton(
+                            iconSize: widget.iconSize,
+                            splashRadius: widget.iconSize * 2,
+                            onPressed: () {
                               setState(() {
                                 List<String> listOfDataPoint = [];
                                 for (var i = 0; i < headerTexts.length; i++) {
@@ -171,7 +207,7 @@ class _FluttableState extends State<Fluttable> {
                                 }
                                 editableDatasetList.add(listOfDataPoint);
                               });
-                              sendCallback();
+                              sendOnRowAdd();
                             },
                             // child: Text(
                             //   "Add",
@@ -182,9 +218,8 @@ class _FluttableState extends State<Fluttable> {
                             //     fontWeight: FontWeight.w300,
                             //   ),
                             // ),
-                            child: Icon(
+                            icon: Icon(
                               Icons.add,
-                              size: 12,
                             ),
                           ),
                         ),
@@ -268,7 +303,12 @@ class _FluttableState extends State<Fluttable> {
                                         validator: (value) {
                                           return (cellsToDisable[i][j] == 1) ^
                                                   (widget.formKeyIfAny != null)
-                                              ? widget.validateField(value)
+                                              ? isCustomizeValidationsProvided
+                                                  ? fvc.doValidation(
+                                                      widget.customizeValidations[
+                                                          i][j],
+                                                      value)
+                                                  : fvc.fallbackValidator(value)
                                               : null;
                                         },
                                         onChanged: (value) {
@@ -276,7 +316,7 @@ class _FluttableState extends State<Fluttable> {
                                             editableDatasetList[i][j] = value;
                                           });
 
-                                          sendCallback();
+                                          sendOnTableEdited();
                                         },
                                         decoration: getInputDecoration(
                                             (cellsToDisable[i][j] == 1) ^
@@ -308,15 +348,17 @@ class _FluttableState extends State<Fluttable> {
                                   // color: Colors.red,
                                   child: Padding(
                                     padding: EdgeInsets.all(8),
-                                    child: GestureDetector(
-                                      onTap: () {
+                                    child: IconButton(
+                                      iconSize: widget.iconSize - 3,
+                                      splashRadius: (widget.iconSize - 3) * 2,
+                                      onPressed: () {
                                         if (editableDatasetList.length >
                                             (widget.minRows ?? 0)) {
                                           setState(() {
                                             editableDatasetList
                                                 .remove(eachDataset);
                                           });
-                                          sendCallback();
+                                          sendOnRowDelete();
                                         }
                                       },
                                       // child: Text(
@@ -328,9 +370,8 @@ class _FluttableState extends State<Fluttable> {
                                       //     fontWeight: FontWeight.w300,
                                       //   ),
                                       // ),
-                                      child: Icon(
+                                      icon: Icon(
                                         Icons.clear,
-                                        size: 10,
                                       ),
                                     ),
                                   ),
@@ -346,12 +387,22 @@ class _FluttableState extends State<Fluttable> {
     );
   }
 
-  sendCallback() {
-    print("FLUTTABLE: sending onchange");
+  sendOnTableEdited() {
+    // print("FLUTTABLE: sending onchange");
     if (widget.formKeyIfAny?.currentState?.validate() ?? true) {
-      print("FLUTTABLE: verified callback");
+      // print("FLUTTABLE: verified callback");
     }
-    widget.callback(editableDatasetList);
+    if (widget.onTableEdited != null) widget.onTableEdited(editableDatasetList);
+  }
+
+  sendOnRowAdd() {
+    // print("FLUTTABLE ADDED ROW");
+    widget.onRowAdded(editableDatasetList);
+  }
+
+  sendOnRowDelete() {
+    // print("FLUTTABLE DELETED ROW");
+    widget.onRowDeleted(editableDatasetList);
   }
 
   List<List<int>> getCellsToDisable(List listOfList) {
@@ -368,7 +419,7 @@ class _FluttableState extends State<Fluttable> {
 
       for (List listValue in listOfList) {
         List<int> listInts = [];
-        for (var value in listValue) {
+        for (int i = 0; i < listValue.length; ++i) {
           listInts = [...listInts, 0];
         }
         cellsToDisable = [...cellsToDisable, listInts];
@@ -384,7 +435,7 @@ class _FluttableState extends State<Fluttable> {
 
         for (List listValue in listOfList) {
           List<int> listInts = [];
-          for (var value in listValue) {
+          for (int i = 0; i < listValue.length; ++i) {
             listInts = [...listInts, 0];
           }
           cellsToDisable = [...cellsToDisable, listInts];
@@ -405,15 +456,494 @@ class _FluttableState extends State<Fluttable> {
       contentPadding: EdgeInsets.all(0),
       hintText: isEnabled ? 'Value' : '',
       hintStyle: TextStyle(fontSize: 10.0),
+      errorMaxLines: 10,
     );
   }
+}
+
+// Fluttable validation checker
+class FluttableValCheck {
+  Function(String) fallbackValidator;
+  int specifyRange;
+  bool shortErrors;
+  FluttableValCheck(
+      {this.fallbackValidator, this.specifyRange: 9, this.shortErrors: false});
+
+  Function getValidatorFunction(FluttableVal fluttableVal) {
+    switch (fluttableVal) {
+      // dms
+      case FluttableVal.DEGREE:
+        {
+          return _degreeCheck;
+        }
+      case FluttableVal.MINSEC:
+        {
+          return _minsecCheck;
+        }
+      case FluttableVal.HOUR:
+        {
+          return _hourCheck;
+        }
+
+      // simple numeric continuous -infinity to +infinity
+      case FluttableVal.NUM:
+        {
+          return _numCheck;
+        }
+      // simple numeric discrete -infinity to +infinity
+      case FluttableVal.INTNUM:
+        {
+          return _intNumCheck;
+        }
+
+      // double numerics
+      case FluttableVal.POSDOUBLE:
+        {
+          return _posDoubleNumCheck;
+        }
+      case FluttableVal.NEGDOUBLE:
+        {
+          return _negDoubleNumCheck;
+        }
+      case FluttableVal.ABOVEZERODOUBLE:
+        {
+          return _aboveZeroDoubleNumCheck;
+        }
+      case FluttableVal.BELOWZERODOUBLE:
+        {
+          return _belowZeroDoubleNumCheck;
+        }
+
+      // int numerics
+      case FluttableVal.POSINT:
+        {
+          return _posIntNumCheck;
+        }
+      case FluttableVal.NEGINT:
+        {
+          return _negIntNumCheck;
+        }
+      case FluttableVal.ABOVEZEROINT:
+        {
+          return _aboveZeroIntNumCheck;
+        }
+      case FluttableVal.BELOWZEROINT:
+        {
+          return _belowZeroIntNumCheck;
+        }
+
+      // string options
+      case FluttableVal.ALPHA:
+        {
+          return _alphaCheck;
+        }
+      case FluttableVal.ALPHANUM:
+        {
+          return _alphanumCheck;
+        }
+
+      // range check
+      case FluttableVal.RANGECHECK:
+        {
+          return _numericWithRange;
+        }
+
+      // set to table validator
+      default:
+        {
+          return fieldCheck;
+        }
+    }
+  }
+
+  String doValidation(FluttableVal fluttableVal, String value) {
+    switch (fluttableVal) {
+      // dms
+      case FluttableVal.DEGREE:
+        {
+          return _degreeCheck(value);
+        }
+      case FluttableVal.MINSEC:
+        {
+          return _minsecCheck(value);
+        }
+      case FluttableVal.HOUR:
+        {
+          return _hourCheck(value);
+        }
+
+      // simple numeric continuous -infinity to +infinity
+      case FluttableVal.NUM:
+        {
+          return _numCheck(value);
+        }
+      // simple numeric discrete -infinity to +infinity
+      case FluttableVal.INTNUM:
+        {
+          return _intNumCheck(value);
+        }
+
+      // double numerics
+      case FluttableVal.POSDOUBLE:
+        {
+          return _posDoubleNumCheck(value);
+        }
+      case FluttableVal.NEGDOUBLE:
+        {
+          return _negDoubleNumCheck(value);
+        }
+      case FluttableVal.ABOVEZERODOUBLE:
+        {
+          return _aboveZeroDoubleNumCheck(value);
+        }
+      case FluttableVal.BELOWZERODOUBLE:
+        {
+          return _belowZeroDoubleNumCheck(value);
+        }
+
+      // int numerics
+      case FluttableVal.POSINT:
+        {
+          return _posIntNumCheck(value);
+        }
+      case FluttableVal.NEGINT:
+        {
+          return _negIntNumCheck(value);
+        }
+      case FluttableVal.ABOVEZEROINT:
+        {
+          return _aboveZeroIntNumCheck(value);
+        }
+      case FluttableVal.BELOWZEROINT:
+        {
+          return _belowZeroIntNumCheck(value);
+        }
+
+      // string options
+      case FluttableVal.ALPHA:
+        {
+          return _alphaCheck(value);
+        }
+      case FluttableVal.ALPHANUM:
+        {
+          return _alphanumCheck(value);
+        }
+
+      // range check
+      case FluttableVal.RANGECHECK:
+        {
+          return _numericWithRange(value, range: specifyRange);
+        }
+
+      // set to table validator
+      default:
+        {
+          return fallbackValidator(value);
+        }
+    }
+  }
+
+  // boolean to compute
+  bool _validatePositiveDouble(String value) {
+    Pattern pattern = r'^(\d*\.?\d*)$';
+    RegExp regExp = new RegExp(pattern);
+    return regExp.hasMatch(value);
+  }
+
+  bool _validateNegativeDouble(String value) {
+    Pattern pattern = r'^(-\d*\.?\d+)$';
+    RegExp regExp = new RegExp(pattern);
+    return regExp.hasMatch(value);
+  }
+
+  bool _validateAboveZeroDouble(String val) {
+    Pattern pattern = r'^((\d*\.?0*[1-9]\d*)|(0*[1-9]\d*\.?\d+))$';
+    RegExp regExp = new RegExp(pattern);
+    return regExp.hasMatch(val);
+  }
+
+  bool _validateBelowZeroDouble(String val) {
+    Pattern pattern = r'^-((\d*\.?0*[1-9]\d*)|(0*[1-9]\d*\.?\d+))$';
+    RegExp regExp = new RegExp(pattern);
+    return regExp.hasMatch(val);
+  }
+
+  bool _validatePositiveInteger(String val) {
+    Pattern pattern = r'^(\d+)$';
+    RegExp regExp = new RegExp(pattern);
+    return regExp.hasMatch(val);
+  }
+
+  bool _validateNegativeInteger(String val) {
+    Pattern pattern = r'^(-\d*?\d+)$';
+    RegExp regExp = new RegExp(pattern);
+    return regExp.hasMatch(val);
+  }
+
+  bool _validateAboveZeroInteger(String val) {
+    Pattern pattern = r'^[0]*[1-9]\d*$';
+    RegExp regExp = new RegExp(pattern);
+    return regExp.hasMatch(val);
+  }
+
+  bool _validateBelowZeroInteger(String val) {
+    Pattern pattern = r'^-[0]*[1-9]\d*$';
+    RegExp regExp = new RegExp(pattern);
+    return regExp.hasMatch(val);
+  }
+
+  // actual output generators
+  String _degreeCheck(String value) {
+    double parsedValue = double.tryParse(value);
+    if (value.isEmpty || parsedValue == null) {
+      return "Error";
+    } else {
+      return _validatePositiveDouble(value)
+          ? (parsedValue <= 360 && parsedValue >= 0)
+              ? null
+              : "Not in range: 0 - 360"
+          : "Cannot be negative or have spaces";
+    }
+  }
+
+  String _minsecCheck(String value) {
+    double parsedValue = double.tryParse(value);
+    if (value.isEmpty || parsedValue == null) {
+      return "Error";
+    } else {
+      return _validatePositiveDouble(value)
+          ? (parsedValue <= 60 && parsedValue >= 0)
+              ? null
+              : "Not in range: 0 - 60"
+          : "Cannot be negative or have spaces";
+    }
+  }
+
+  String _hourCheck(String value) {
+    double parsedValue = double.tryParse(value);
+    if (value.isEmpty || parsedValue == null) {
+      return "Error";
+    } else {
+      return _validatePositiveDouble(value)
+          ? (parsedValue <= 24 && parsedValue >= 0)
+              ? null
+              : "Not in range: 0 - 24"
+          : "Cannot be negative or have spaces";
+    }
+  }
+
+  String _numCheck(String value) {
+    if (value.isEmpty || double.tryParse(value) == null) {
+      return 'Error';
+    } else {
+      Pattern pattern = r'([.])\1{1}';
+      RegExp regExp = new RegExp(pattern);
+      return regExp.hasMatch(value) ? "Error" : null;
+    }
+  }
+
+  String _intNumCheck(String value) {
+    if (value.isEmpty || double.tryParse(value) == null) {
+      return 'Error';
+    } else {
+      Pattern pattern = r'^(-?\d+)$';
+      RegExp regExp = new RegExp(pattern);
+      return regExp.hasMatch(value) ? "Error" : null;
+    }
+  }
+
+  String _alphaCheck(String value) {
+    if (value.isEmpty) {
+      return "Error";
+    } else {
+      Pattern pattern = r'^([a-z,A-Z])*$';
+      RegExp regExp = new RegExp(pattern);
+      return !regExp.hasMatch(value) ? "Must be: a-z, A-Z" : null;
+    }
+  }
+
+  String _alphanumCheck(String value) {
+    if (value.isEmpty) {
+      return "Error";
+    } else {
+      Pattern pattern = r'^([a-z,A-Z,0-9])*$';
+      RegExp regExp = new RegExp(pattern);
+      return !regExp.hasMatch(value) ? "Must be: a-z, A-Z" : null;
+    }
+  }
+
+  String _posIntNumCheck(String value) {
+    if (value.isEmpty || double.tryParse(value) == null) {
+      return 'Error';
+    } else {
+      return _validatePositiveInteger(value)
+          ? null
+          : "Cannot be negative, have decimal or spaces";
+    }
+  }
+
+  String _negIntNumCheck(String value) {
+    if (value.isEmpty || double.tryParse(value) == null) {
+      return 'Error';
+    } else {
+      return _validateNegativeInteger(value)
+          ? null
+          : "Cannot be positive, have decimal or spaces";
+    }
+  }
+
+  String _aboveZeroIntNumCheck(String value) {
+    if (value.isEmpty || double.tryParse(value) == null) {
+      return 'Error';
+    } else {
+      return _validateAboveZeroInteger(value)
+          ? null
+          : "Must be > 0 and without decimal or spaces";
+    }
+  }
+
+  String _belowZeroIntNumCheck(String value) {
+    if (value.isEmpty || double.tryParse(value) == null) {
+      return 'Error';
+    } else {
+      return _validateBelowZeroInteger(value)
+          ? null
+          : "Must be < 0 and without decimal or spaces";
+    }
+  }
+
+  String _posDoubleNumCheck(String value) {
+    if (value.isEmpty || double.tryParse(value) == null) {
+      return 'Error';
+    } else {
+      return _validatePositiveDouble(value)
+          ? null
+          : "Cannot be negative or have spaces";
+    }
+  }
+
+  String _negDoubleNumCheck(String value) {
+    if (value.isEmpty || double.tryParse(value) == null) {
+      return 'Error';
+    } else {
+      return _validateNegativeDouble(value)
+          ? null
+          : "Cannot be positive or have spaces";
+    }
+  }
+
+  String _aboveZeroDoubleNumCheck(String value) {
+    double parsedValue = double.tryParse(value);
+    if (value.isEmpty || parsedValue == null) {
+      return 'Error';
+    } else {
+      return _validateAboveZeroDouble(value) && parsedValue > 0
+          ? null
+          : "Must be > 0 and without spaces";
+    }
+  }
+
+  String _belowZeroDoubleNumCheck(String value) {
+    double parsedValue = double.tryParse(value);
+    if (value.isEmpty || parsedValue == null) {
+      return 'Error';
+    } else {
+      return _validateBelowZeroDouble(value) && parsedValue < 0
+          ? null
+          : "Must be < 0 and without spaces";
+    }
+  }
+
+  String _numericWithRange(String value, {int range: 9}) {
+    range = specifyRange ?? range;
+    if (value.isEmpty || double.tryParse(value) == null) {
+      return "Error";
+    } else {
+      int range1 = range + 1;
+      RegExp rangeDecimalRegExp = new RegExp(
+          "((?=^-?(\\d*\\.\\d+)\$)(?=^-?[0-9.]{$range1}\$)|^-?[0-9]{$range}\$)");
+
+      return !rangeDecimalRegExp.hasMatch(value) ? "Error" : null;
+    }
+  }
+
+  String fieldCheck(String value) {
+    // TODO: field check is number check, adjust!
+    if (value.isEmpty || double.tryParse(value) == null) {
+      return "Error";
+    } else {
+      Pattern pattern = r'([.])\1{1}';
+      RegExp regExp = new RegExp(pattern);
+      return regExp.hasMatch(value) ? "Error" : null;
+    }
+  }
+
+  //
+
+  List<List<FluttableVal>> getValidationAppliedData(
+      List<List<String>> listOfLists, FluttableVal fv) {
+    List<List<FluttableVal>> listOfFvList = [];
+    for (List<String> eachList in listOfLists) {
+      List<FluttableVal> eachFvList =
+          List<FluttableVal>.filled(eachList.length, fv);
+      listOfFvList = [...listOfFvList, eachFvList];
+    }
+    return listOfFvList;
+  }
+
+  List<List<FluttableVal>> replaceValidationOnColumn(
+      List<List<String>> listOfLists, int columnNumber, FluttableVal fv,
+      {FluttableVal defaultFv: FluttableVal.DEFAULT}) {
+    List<List<FluttableVal>> listOfFvList =
+        getValidationAppliedData(listOfLists, defaultFv);
+
+    for (List<FluttableVal> eachFvList in listOfFvList) {
+      eachFvList[columnNumber] = fv;
+    }
+
+    return listOfFvList;
+  }
+}
+
+// Fluttable enums
+enum FluttableVal {
+  // dms
+  DEGREE,
+  MINSEC,
+  HOUR,
+
+  // simple numeric continuous -infinity to +infinity
+  NUM,
+  // simple numeric discrete -infinity to +infinity
+  INTNUM,
+
+  // double numerics
+  POSDOUBLE,
+  NEGDOUBLE,
+  ABOVEZERODOUBLE,
+  BELOWZERODOUBLE,
+
+  // int numerics
+  POSINT,
+  NEGINT,
+  ABOVEZEROINT,
+  BELOWZEROINT,
+
+  // string options
+  ALPHA,
+  ALPHANUM,
+
+  // range check
+  RANGECHECK,
+
+  // set to table validator
+  DEFAULT,
 }
 
 class Keypad {
   TextInputType keypadInputType;
 
   Keypad() {
-    this.keypadInputType = TextInputType
-        .phone; //TextInputType.numberWithOptions(decimal: true, signed: true);
+    this.keypadInputType = TextInputType.text;
   }
 }
