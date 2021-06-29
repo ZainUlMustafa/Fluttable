@@ -42,6 +42,12 @@ class Fluttable extends StatefulWidget {
   final FluttableValCheck customFluttableValCheck;
   final FluttableVal defaultValidator;
 
+  // tap detectors
+  final List<int> tapableColumns;
+  final bool showTapCellAsButton;
+  final Function(List<String>) onRowTap;
+  final Function(String) onCellTap;
+
   Fluttable({
     @required this.firstColumnText,
     @required this.editableDatasetList,
@@ -69,6 +75,12 @@ class Fluttable extends StatefulWidget {
     this.customizeValidations,
     this.customFluttableValCheck,
     this.defaultValidator,
+
+    // tap detectors
+    this.tapableColumns,
+    this.showTapCellAsButton: false,
+    this.onRowTap,
+    this.onCellTap,
     Key key,
   }) : super(key: key);
 
@@ -235,156 +247,236 @@ class _FluttableState extends State<Fluttable> {
             .asMap()
             .map((i, eachDataset) => MapEntry(
                   i,
-                  Container(
-                    margin: EdgeInsets.symmetric(
-                        horizontal: widget.contentPadding ?? 0),
-                    padding: EdgeInsets.symmetric(vertical: 6),
-                    decoration: BoxDecoration(
-                      color: editableDatasetList.indexOf(eachDataset) % 2 == 0
-                          ? widget.otherBackgroundColor
-                          : widget.backgroundColor,
-                      border: Border(
-                        bottom: BorderSide(
-                          width: 1.0,
-                          color: Colors.grey,
-                        ),
-                        right: BorderSide(
-                          width: 1.0,
-                          color: Colors.grey,
-                        ),
-                        left: BorderSide(
-                          width: 1.0,
-                          color: Colors.grey,
+                  GestureDetector(
+                    onTap: () {
+                      detectOnRowTap(eachDataset);
+                    },
+                    child: Container(
+                      margin: EdgeInsets.symmetric(
+                          horizontal: widget.contentPadding ?? 0),
+                      padding: EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: editableDatasetList.indexOf(eachDataset) % 2 == 0
+                            ? widget.otherBackgroundColor
+                            : widget.backgroundColor,
+                        border: Border(
+                          bottom: BorderSide(
+                            width: 1.0,
+                            color: Colors.grey,
+                          ),
+                          right: BorderSide(
+                            width: 1.0,
+                            color: Colors.grey,
+                          ),
+                          left: BorderSide(
+                            width: 1.0,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        widget.showFirstColumn
-                            ? Flexible(
-                                flex: 1,
-                                fit: FlexFit.tight,
-                                child: Container(
-                                  // color: Colors.red,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Text(
-                                      "${widget.rowNames.length == widget.minRows ? widget.rowNames[i] : ''}${widget.firstColumnText}${widget.showRowCounter ? widget.alphaCounter ? String.fromCharCode(65 + editableDatasetList.indexOf(eachDataset)) : editableDatasetList.indexOf(eachDataset) + 1 : ''}",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w400,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : Container(),
-                        ...eachDataset
-                            .asMap()
-                            .map((j, eachPoint) {
-                              return MapEntry(
-                                j,
-                                Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          widget.showFirstColumn
+                              ? Flexible(
                                   flex: 1,
                                   fit: FlexFit.tight,
                                   child: Container(
                                     // color: Colors.red,
                                     child: Padding(
                                       padding: const EdgeInsets.all(8.0),
-                                      child: TextFormField(
-                                        initialValue: editableDatasetList[i][j],
-                                        keyboardType: keypad.keypadInputType,
-                                        enabled: (cellsToDisable[i][j] == 1) ^
-                                                widget.editable ^
-                                                (widget.rowsToDisable ?? [])
-                                                    .contains(i) ??
-                                            true,
-                                        textAlign: TextAlign.center,
-                                        validator: (value) {
-                                          return (cellsToDisable[i][j] == 1) ^
-                                                  (widget.formKeyIfAny != null)
-                                              ? isCustomizeValidationsProvided
-                                                  ? fvc.doValidation(
-                                                      widget.customizeValidations[
-                                                          i][j],
-                                                      value)
-                                                  : fvc.fallbackValidator(value)
-                                              : null;
-                                        },
-                                        onChanged: (value) {
-                                          setState(() {
-                                            editableDatasetList[i][j] = value;
-                                          });
-
-                                          sendOnTableEdited();
-                                        },
-                                        decoration: getInputDecoration(
-                                            (cellsToDisable[i][j] == 1) ^
+                                      child: Text(
+                                        "${widget.rowNames.length == widget.minRows ? widget.rowNames[i] : ''}${widget.firstColumnText}${widget.showRowCounter ? widget.alphaCounter ? String.fromCharCode(65 + editableDatasetList.indexOf(eachDataset)) : editableDatasetList.indexOf(eachDataset) + 1 : ''}",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Container(),
+                          ...eachDataset
+                              .asMap()
+                              .map((j, eachPoint) {
+                                return MapEntry(
+                                  j,
+                                  Flexible(
+                                    flex: 1,
+                                    fit: FlexFit.tight,
+                                    child: relevantCellDetector(
+                                      Container(
+                                        // color: Colors.red,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: TextFormField(
+                                            initialValue: editableDatasetList[i]
+                                                [j],
+                                            keyboardType:
+                                                keypad.keypadInputType,
+                                            enabled: (cellsToDisable[i][j] ==
+                                                        1) ^
                                                     widget.editable ^
                                                     (widget.rowsToDisable ?? [])
                                                         .contains(i) ??
-                                                true),
+                                                true,
+                                            textAlign: TextAlign.center,
+                                            validator: (value) {
+                                              return (cellsToDisable[i][j] ==
+                                                          1) ^
+                                                      (widget.formKeyIfAny !=
+                                                          null)
+                                                  ? isCustomizeValidationsProvided
+                                                      ? fvc.doValidation(
+                                                          widget.customizeValidations[
+                                                              i][j],
+                                                          value)
+                                                      : fvc.fallbackValidator(
+                                                          value)
+                                                  : null;
+                                            },
+                                            onChanged: (value) {
+                                              setState(() {
+                                                editableDatasetList[i][j] =
+                                                    value;
+                                              });
+
+                                              sendOnTableEdited();
+                                            },
+                                            decoration: getInputDecoration(
+                                                (cellsToDisable[i][j] == 1) ^
+                                                        widget.editable ^
+                                                        (widget.rowsToDisable ??
+                                                                [])
+                                                            .contains(i) ??
+                                                    true),
+                                          ),
+                                        ),
+                                      ),
+                                      eachPoint,
+                                      j,
+                                    ),
+                                  ),
+                                );
+                              })
+                              .values
+                              .toList(),
+                          widget.expandableList
+                              ? Flexible(
+                                  flex: 1,
+                                  fit: FlexFit.tight,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: editableDatasetList
+                                                      .indexOf(eachDataset) %
+                                                  2 ==
+                                              0
+                                          ? widget.otherBackgroundColor
+                                          : widget.backgroundColor,
+                                    ),
+                                    // color: Colors.red,
+                                    child: Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child: IconButton(
+                                        iconSize: widget.iconSize - 3,
+                                        splashRadius: (widget.iconSize - 3) * 2,
+                                        onPressed: () {
+                                          if (editableDatasetList.length >
+                                              (widget.minRows ?? 0)) {
+                                            setState(() {
+                                              editableDatasetList
+                                                  .remove(eachDataset);
+                                            });
+                                            sendOnRowDelete();
+                                          }
+                                        },
+                                        // child: Text(
+                                        //   "Remove",
+                                        //   textAlign: TextAlign.center,
+                                        //   style: TextStyle(
+                                        //     fontSize: 10,
+                                        //     fontStyle: FontStyle.italic,
+                                        //     fontWeight: FontWeight.w300,
+                                        //   ),
+                                        // ),
+                                        icon: Icon(
+                                          Icons.clear,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              );
-                            })
-                            .values
-                            .toList(),
-                        widget.expandableList
-                            ? Flexible(
-                                flex: 1,
-                                fit: FlexFit.tight,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: editableDatasetList
-                                                    .indexOf(eachDataset) %
-                                                2 ==
-                                            0
-                                        ? widget.otherBackgroundColor
-                                        : widget.backgroundColor,
-                                  ),
-                                  // color: Colors.red,
-                                  child: Padding(
-                                    padding: EdgeInsets.all(8),
-                                    child: IconButton(
-                                      iconSize: widget.iconSize - 3,
-                                      splashRadius: (widget.iconSize - 3) * 2,
-                                      onPressed: () {
-                                        if (editableDatasetList.length >
-                                            (widget.minRows ?? 0)) {
-                                          setState(() {
-                                            editableDatasetList
-                                                .remove(eachDataset);
-                                          });
-                                          sendOnRowDelete();
-                                        }
-                                      },
-                                      // child: Text(
-                                      //   "Remove",
-                                      //   textAlign: TextAlign.center,
-                                      //   style: TextStyle(
-                                      //     fontSize: 10,
-                                      //     fontStyle: FontStyle.italic,
-                                      //     fontWeight: FontWeight.w300,
-                                      //   ),
-                                      // ),
-                                      icon: Icon(
-                                        Icons.clear,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : Container(),
-                      ],
+                                )
+                              : Container(),
+                        ],
+                      ),
                     ),
                   ),
                 ))
             .values,
       ],
     );
+  }
+
+  Widget relevantCellDetector(
+    Widget childWidget,
+    String eachPoint,
+    int columnNumber,
+  ) {
+    if (widget.showTapCellAsButton) {
+      if (widget.tapableColumns?.isEmpty ?? true) {
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 3),
+          child: OutlinedButton(
+            child: childWidget,
+            onPressed: () {
+              detectOnCellTap(eachPoint);
+            },
+          ),
+        );
+      } else {
+        if (widget.tapableColumns.contains(columnNumber)) {
+          return Container(
+            padding: EdgeInsets.symmetric(horizontal: 3),
+            child: OutlinedButton(
+              child: childWidget,
+              onPressed: () {
+                detectOnCellTap(eachPoint);
+              },
+            ),
+          );
+        } else {
+          return GestureDetector(
+            child: childWidget,
+            onTap: () {
+              // detectOnCellTap(eachPoint);
+            },
+          );
+        }
+      }
+    } else {
+      if ((widget.tapableColumns ?? []).contains(columnNumber)) {
+        return GestureDetector(
+          child: childWidget,
+          onTap: () {
+            detectOnCellTap(eachPoint);
+          },
+        );
+      } else {
+        return GestureDetector(
+          child: childWidget,
+          onTap: () {
+            // detectOnCellTap(eachPoint);
+          },
+        );
+      }
+    }
+  }
+
+  detectOnCellTap(String cellData) {
+    widget.onCellTap(cellData);
+  }
+
+  detectOnRowTap(List<String> rowListOfString) {
+    widget.onRowTap(rowListOfString);
   }
 
   sendOnTableEdited() {
