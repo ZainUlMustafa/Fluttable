@@ -45,8 +45,8 @@ class Fluttable extends StatefulWidget {
   // tap detectors
   final List<int> tapableColumns;
   final bool showTapCellAsButton;
-  final Function(List<String>) onRowTap;
-  final Function(String) onCellTap;
+  final Function(List<String>, int) onRowTap;
+  final Function(String, int) onCellTap;
 
   Fluttable({
     @required this.firstColumnText,
@@ -249,7 +249,7 @@ class _FluttableState extends State<Fluttable> {
                   i,
                   GestureDetector(
                     onTap: () {
-                      detectOnRowTap(eachDataset);
+                      detectOnRowTap(eachDataset, i);
                     },
                     child: Container(
                       margin: EdgeInsets.symmetric(
@@ -354,6 +354,7 @@ class _FluttableState extends State<Fluttable> {
                                       ),
                                       eachPoint,
                                       j,
+                                      i,
                                     ),
                                   ),
                                 );
@@ -420,6 +421,7 @@ class _FluttableState extends State<Fluttable> {
     Widget childWidget,
     String eachPoint,
     int columnNumber,
+    int rowNumber,
   ) {
     if (widget.showTapCellAsButton) {
       if (widget.tapableColumns?.isEmpty ?? true) {
@@ -428,7 +430,7 @@ class _FluttableState extends State<Fluttable> {
           child: OutlinedButton(
             child: childWidget,
             onPressed: () {
-              detectOnCellTap(eachPoint);
+              detectOnCellTap(eachPoint, rowNumber);
             },
           ),
         );
@@ -439,7 +441,7 @@ class _FluttableState extends State<Fluttable> {
             child: OutlinedButton(
               child: childWidget,
               onPressed: () {
-                detectOnCellTap(eachPoint);
+                detectOnCellTap(eachPoint, rowNumber);
               },
             ),
           );
@@ -447,7 +449,7 @@ class _FluttableState extends State<Fluttable> {
           return GestureDetector(
             child: childWidget,
             onTap: () {
-              // detectOnCellTap(eachPoint);
+              // detectOnCellTap(eachPoint, rowNumber);
             },
           );
         }
@@ -457,26 +459,26 @@ class _FluttableState extends State<Fluttable> {
         return GestureDetector(
           child: childWidget,
           onTap: () {
-            detectOnCellTap(eachPoint);
+            detectOnCellTap(eachPoint, rowNumber);
           },
         );
       } else {
         return GestureDetector(
           child: childWidget,
           onTap: () {
-            // detectOnCellTap(eachPoint);
+            // detectOnCellTap(eachPoint, rowNumber);
           },
         );
       }
     }
   }
 
-  detectOnCellTap(String cellData) {
-    widget.onCellTap(cellData);
+  detectOnCellTap(String cellData, int rowIndex) {
+    if (widget.onCellTap != null) widget.onCellTap(cellData, rowIndex);
   }
 
-  detectOnRowTap(List<String> rowListOfString) {
-    widget.onRowTap(rowListOfString);
+  detectOnRowTap(List<String> rowListOfString, int rowIndex) {
+    if (widget.onRowTap != null) widget.onRowTap(rowListOfString, rowIndex);
   }
 
   sendOnTableEdited() {
@@ -489,12 +491,12 @@ class _FluttableState extends State<Fluttable> {
 
   sendOnRowAdd() {
     // print("FLUTTABLE ADDED ROW");
-    widget.onRowAdded(editableDatasetList);
+    if (widget.onRowAdded != null) widget.onRowAdded(editableDatasetList);
   }
 
   sendOnRowDelete() {
     // print("FLUTTABLE DELETED ROW");
-    widget.onRowDeleted(editableDatasetList);
+    if (widget.onRowDeleted != null) widget.onRowDeleted(editableDatasetList);
   }
 
   List<List<int>> getCellsToDisable(List listOfList) {

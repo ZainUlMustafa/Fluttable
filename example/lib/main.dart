@@ -84,11 +84,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 Fluttable(
                   tapableColumns: [1],
                   showTapCellAsButton: true,
-                  onCellTap: (value) {
-                    print("cell value: $value");
+                  onCellTap: (value, rowIndex) {
+                    print("cell value: $value in row $rowIndex");
                   },
-                  onRowTap: (listOfValues) {
-                    print("row value: $listOfValues");
+                  onRowTap: (listOfValues, rowIndex) {
+                    print("row value: $listOfValues in row $rowIndex");
                   },
                   editable: false,
                   defaultValidator: FluttableVal.POSINT,
