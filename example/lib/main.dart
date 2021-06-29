@@ -82,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                 // FLUTTABLE IMPLEMENTATION
                 Fluttable(
-                  tapableColumns: [0],
+                  tapableColumns: [1],
                   showTapCellAsButton: true,
                   onCellTap: (value) {
                     print("cell value: $value");
