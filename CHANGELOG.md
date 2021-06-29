@@ -15,3 +15,5 @@
 - Features onRowTap and onCellTap out of the box
 - Control how tapable cells appear via showTapCellAsButton boolean property
 - Restrict tapables to a certain column via tapableColumns property
+## 1.2.1
+- Few null checks added
