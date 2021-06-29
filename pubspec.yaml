@@ -1,6 +1,6 @@
 name: fluttable
-description: A minimal yet powerful approach to editable data tables making it completely editable, customizable, be styled, excellent integration with Form widget, and coupled with a powerful validator (16 varieties).
-version: 1.1.0
+description: A minimal yet powerful approach to editable data tables coupled with a powerful validator (16 varieties).
+version: 1.2.0
 # author: Zain Ul Mustafa
 homepage: https://github.com/zainulmustafa/fluttable
 
