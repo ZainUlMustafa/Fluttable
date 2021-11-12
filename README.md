@@ -1,5 +1,7 @@
 # Fluttable
 
+Intall: https://pub.dev/packages/fluttable/install
+
 **A minimal yet powerful approach to editable data tables which can**
 - Editable
 - Customizable
