@@ -37,8 +37,8 @@ class _MyHomePageState extends State<MyHomePage> {
   // HERE IN THIS EXAMPLE WE ARE GENERATING 2 COLUMN TABLE
   Points points = Points();
   List<Points> listOfPoints = [
-    Points(xcorr: '', ycorr: ''),
-    Points(xcorr: '', ycorr: ''),
+    Points(xcorr: '1', ycorr: '2'),
+    Points(xcorr: '6', ycorr: '5'),
   ];
   // List<Points> listOfEnteredPoints = [];
 
@@ -52,7 +52,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Form(
           key: _formKey,
           child: Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(0.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -82,6 +82,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
                 // FLUTTABLE IMPLEMENTATION
                 Fluttable(
+                  tapableColumns: [1],
+                  showTapCellAsButton: true,
+                  onCellTap: (value, rowIndex) {
+                    print("cell value: $value in row $rowIndex");
+                  },
+                  onRowTap: (listOfValues, rowIndex) {
+                    print("row value: $listOfValues in row $rowIndex");
+                  },
+                  editable: false,
                   defaultValidator: FluttableVal.POSINT,
                   key: tableKey,
                   contentPadding: 30,
